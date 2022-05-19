@@ -1,0 +1,33 @@
+SRCS=src/main.s src/start.s src/lfb.s src/mbox.s src/snake.s src/gpio.s
+OBJS=mbox.o lfb.o snake.o gpio.o main.o start.o
+CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -nostartfiles -fno-stack-protector
+
+all: clean kernel8.img
+
+start.o: src/start.s
+	aarch64-elf-gcc $(CFLAGS) -c src/start.s -o start.o
+
+mbox.o: src/mbox.s
+	aarch64-elf-gcc $(CFLAGS) -c src/mbox.s -o mbox.o
+
+lfb.o: src/lfb.s
+	aarch64-elf-gcc $(CFLAGS) -c src/lfb.s -o lfb.o
+
+snake.o: src/snake.s
+	aarch64-elf-gcc $(CFLAGS) -c src/snake.s -o snake.o
+
+main.o: src/main.s
+	aarch64-elf-gcc $(CFLAGS) -c src/main.s -o main.o
+
+gpio.o: src/gpio.s
+	aarch64-elf-gcc $(CFLAGS) -c src/gpio.s -o gpio.o
+
+kernel8.img: $(OBJS)
+	aarch64-elf-ld -nostdlib -nostartfiles $(OBJS) -T link.ld -o kernel8.elf
+	aarch64-elf-objcopy -O binary kernel8.elf kernel8.img
+
+clean:
+	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
+
+run:
+	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -serial stdio

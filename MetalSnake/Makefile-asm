@@ -1,0 +1,19 @@
+SRCS=src/main.s src/start.s src/lfb.s src/snake.s src/gpio.s src/mbox.s
+OBJS=lfb.o snake.o gpio.o mbox.o main.o start.o
+CFLAGS=-Wall -O2 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
+ASFLAGS=-Wall -O2 -mcpu=cortex-a53+nosimd
+
+all: kernel8.img
+
+$(OBJS): $(SRCS)
+	as --target=aarch64-elf $(ASFLAGS) -o $@ src/$(basename $@).s
+
+kernel8.img: mbox.o $(OBJS)
+	ld.lld -m aarch64elf -nostdlib $(OBJS) -T link.ld -o kernel8.elf
+	llvm-objcopy -O binary kernel8.elf kernel8.img
+
+clean:
+	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
+
+run:
+	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -d in_asm

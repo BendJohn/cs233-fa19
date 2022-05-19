@@ -1,0 +1,24 @@
+SRCS=src/main.s src/start.s
+C_SRCS=c-sources/lfb.c c-sources/mbox.c
+OBJS=main.o start.o
+C_OBJS=mbox.o lfb.o
+CFLAGS = -Wall -O2 -ffreestanding -nostdinc -nostdlib -mcpu=cortex-a53+nosimd
+ASFLAGS = -Wall -O2 -mcpu=cortex-a53+nosimd
+
+all: clean kernel8.img
+
+$(C_OBJS): $(C_SRCS)
+	clang --target=aarch64-elf $(CFLAGS) -o $@ -c c-sources/$(basename $@).c
+
+$(OBJS): $(SRCS)
+	as --target=aarch64-elf $(ASFLAGS) -o $@ src/$(basename $@).s
+
+kernel8.img: $(OBJS) $(C_OBJS)
+	ld.lld -m aarch64elf -nostdlib $(OBJS) $(C_OBJS) -T link.ld -o kernel8.elf
+	llvm-objcopy -O binary kernel8.elf kernel8.img
+
+clean:
+	rm kernel8.elf *.o >/dev/null 2>/dev/null || true
+
+run:
+	qemu-system-aarch64 -M raspi3 -kernel kernel8.img -d in_asm
